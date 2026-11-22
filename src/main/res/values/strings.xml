@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="plugin_name">Read All Notifications Button</string>
+    <string name="read_all">Read All</string>
+    <string name="read_all_description">Mark all server notifications as read</string>
+    <string name="read_all_done">Server notifications marked as read.</string>
+    <string name="read_all_empty">No unread server notifications.</string>
+    <string name="read_all_failed">Couldn’t finish marking server notifications as read. Tap Read All to retry.</string>
+</resources>

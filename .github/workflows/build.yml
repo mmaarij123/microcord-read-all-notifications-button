@@ -1,0 +1,29 @@
+name: Android build
+
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Install the required SDK packages
+        run: sdkmanager "platforms;android-36.1" "build-tools;36.0.0"
+
+      - name: Assemble and lint
+        run: bash ./gradlew assembleDebug lintDebug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: microcord-read-all-notifications-button-debug
+          path: build/outputs/apk/debug/*.apk
