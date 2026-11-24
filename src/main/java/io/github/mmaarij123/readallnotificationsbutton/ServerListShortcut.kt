@@ -4,35 +4,28 @@ package io.github.mmaarij123.readallnotificationsbutton
 import android.app.Activity
 import android.app.Application
 import android.content.Context
-import android.content.res.Resources
-import android.graphics.Typeface
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import android.util.TypedValue
-import android.view.Gravity
 import android.view.View
-import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-import android.widget.Button
-import android.widget.RelativeLayout
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
+import androidx.recyclerview.widget.RecyclerView
+import com.caverock.androidsvg.SVG
 import com.discord.R as HostR
 import com.discord.app.AppActivity
-import com.discord.utilities.color.ColorCompat
 import com.discord.widgets.guilds.list.WidgetGuildsList
-import kotlin.math.roundToInt
 import rx.Subscription
 
 internal class ServerListShortcut(
     private val application: Application,
-    private val resources: Resources,
+    private val icon: SVG,
 ) : Application.ActivityLifecycleCallbacks {
     private val main = Handler(Looper.getMainLooper())
     private val activities = mutableSetOf<AppActivity>()
-    private val buttons = mutableMapOf<WidgetGuildsList, Attachment>()
+    private val shortcuts = mutableMapOf<WidgetGuildsList, DiscoveryReadAllButton>()
     private var pending: Subscription? = null
     private var registered = false
     @Volatile private var stopped = false
@@ -48,7 +41,7 @@ internal class ServerListShortcut(
         }
 
         override fun onFragmentViewDestroyed(manager: FragmentManager, fragment: Fragment) {
-            if (fragment is WidgetGuildsList) buttons.remove(fragment)?.remove()
+            if (fragment is WidgetGuildsList) shortcuts.remove(fragment)?.remove()
         }
     }
 
@@ -69,8 +62,8 @@ internal class ServerListShortcut(
             activities.clear()
             pending?.unsubscribe()
             pending = null
-            buttons.values.forEach(Attachment::remove)
-            buttons.clear()
+            shortcuts.values.forEach(DiscoveryReadAllButton::remove)
+            shortcuts.clear()
         }
     }
 
@@ -90,61 +83,28 @@ internal class ServerListShortcut(
     }
 
     private fun attach(fragment: WidgetGuildsList, view: View) {
-        if (stopped || buttons.containsKey(fragment)) return
-        val list = view.findViewById<View>(HostR.id.guild_list) ?: return
-        val parent = list.parent as? RelativeLayout ?: return
-        val original = list.layoutParams as? RelativeLayout.LayoutParams ?: return
-
-        val button = Button(list.context).apply {
-            id = View.generateViewId()
-            text = resources.getText(R.string.read_all)
-            contentDescription = resources.getText(R.string.read_all_description)
-            isAllCaps = false
-            textSize = 13f
-            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-            gravity = Gravity.CENTER
-            minWidth = 0
-            minimumWidth = 0
-            minHeight = (48 * resources.displayMetrics.density).roundToInt()
-            setPadding(0, 0, 0, 0)
-            val ripple = TypedValue()
-            context.theme.resolveAttribute(android.R.attr.selectableItemBackground, ripple, true)
-            setBackgroundResource(ripple.resourceId)
-            val textColor = ColorCompat.getThemedColorStateListDefault(context, HostR.attr.colorTextNormal)
-            if (textColor != 0) setTextColor(textColor)
-            isEnabled = pending == null
-            setOnClickListener { if (isShown) readAll() }
-        }
-
-        val listBelowButton = RelativeLayout.LayoutParams(original).apply {
-            addRule(RelativeLayout.BELOW, button.id)
-        }
-        parent.addView(button, 0, RelativeLayout.LayoutParams(original.width, WRAP_CONTENT).apply {
-            addRule(RelativeLayout.ALIGN_PARENT_TOP)
-            addRule(RelativeLayout.ALIGN_START, list.id)
-            addRule(RelativeLayout.ALIGN_END, list.id)
-        })
-        list.layoutParams = listBelowButton
-        buttons[fragment] = Attachment(parent, button, list, original, listBelowButton)
+        if (stopped || shortcuts.containsKey(fragment)) return
+        val list = view.findViewById<RecyclerView>(HostR.id.guild_list) ?: return
+        shortcuts[fragment] = DiscoveryReadAllButton(list, icon, pending == null, ::readAll)
     }
 
     private fun readAll() {
         if (stopped || pending != null) return
-        buttons.values.forEach { it.button.isEnabled = false }
+        shortcuts.values.forEach { it.enabled = false }
         pending = markServerNotificationsRead().subscribe({ count ->
-            finish(if (count == 0) R.string.read_all_empty else R.string.read_all_done)
+            finish(if (count == 0) "No unread server notifications." else "Server notifications marked as read.")
         }, { error ->
             Log.w("ReadAllNotifications", "Bulk acknowledgement failed (${error.javaClass.simpleName})")
-            finish(R.string.read_all_failed)
+            finish("Couldn’t finish marking server notifications as read. Tap Read All to retry.")
         })
     }
 
-    private fun finish(message: Int) {
+    private fun finish(message: String) {
         main.post {
             if (stopped) return@post
             pending = null
-            buttons.values.forEach { it.button.isEnabled = true }
-            Toast.makeText(application, resources.getText(message), Toast.LENGTH_SHORT).show()
+            shortcuts.values.forEach { it.enabled = true }
+            Toast.makeText(application, message, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -166,18 +126,4 @@ internal class ServerListShortcut(
     override fun onActivityPaused(activity: Activity) = Unit
     override fun onActivityStopped(activity: Activity) = Unit
     override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
-
-    private class Attachment(
-        val parent: RelativeLayout,
-        val button: Button,
-        val list: View,
-        val original: RelativeLayout.LayoutParams,
-        val installed: RelativeLayout.LayoutParams,
-    ) {
-        fun remove() {
-            if (list.layoutParams === installed) list.layoutParams = original
-            button.setOnClickListener(null)
-            parent.removeView(button)
-        }
-    }
 }

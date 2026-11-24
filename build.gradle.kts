@@ -32,8 +32,8 @@ android {
         applicationId = pluginPackage
         minSdk = 23
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
     }
 
     signingProperties?.let { properties ->
@@ -57,4 +57,6 @@ dependencies {
     compileOnly(libs.rxjava)
     compileOnly(libs.appcompat)
     compileOnly(libs.fragment)
+    compileOnly(libs.recyclerview)
+    compileOnly(libs.androidsvg)
 }

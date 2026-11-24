@@ -6,7 +6,7 @@ The Vencord desktop feature by kemo inspired the Read All button. Its source cod
 
 ## Microcord
 
-The project uses the manifest contract documented by the Microcord plugin template and compiles against the Microcord Plugin SDK. Microcord supplies its host APIs, AndroidX, and RxJava at runtime. [Microcord plugin template](https://github.com/microcord/plugin-template) · [Microcord host license](https://github.com/microcord/microcord/blob/master/LICENSE)
+The project uses the manifest contract documented by the Microcord plugin template and compiles against the Microcord Plugin SDK. Microcord supplies its host APIs, AndroidX, AndroidSVG, and RxJava at runtime. [Microcord plugin template](https://github.com/microcord/plugin-template) · [Microcord host license](https://github.com/microcord/microcord/blob/master/LICENSE)
 
 ## Gradle Wrapper
 
