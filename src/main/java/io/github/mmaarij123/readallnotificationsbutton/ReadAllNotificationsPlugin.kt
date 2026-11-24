@@ -18,7 +18,7 @@ class ReadAllNotificationsPlugin : ManticordPlugin {
         val assetPath = "read-all-notifications/read-all.svg"
         val imageStream = javaClass.getResourceAsStream("/assets/$assetPath")
             ?: checkNotNull(scope.resources.context).assets.open(assetPath)
-        val icon = imageStream.use { SVG.getFromInputStream(it) }
+        val icon = imageStream.use { SVG.getFromInputStream(it).renderToPicture() }
         shortcut = ServerListShortcut(application, icon).also { shortcut ->
             scope.runOnMainThread(shortcut::start)
         }

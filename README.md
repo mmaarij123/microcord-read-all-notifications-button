@@ -4,7 +4,7 @@ Mark unread server channels and joined threads as read with one tap on the green
 
 ## What you can do
 
-- Tap the green **Read All** icon to clear unread messages across your servers, including text channels, voice and stage chats, and active threads you’ve joined.
+- Tap the round green **Read All** icon to clear unread messages across your servers, including text channels, voice and stage chats, and active threads you’ve joined. Its tap area matches Discovery’s.
 - See a confirmation after the request finishes. If a batch fails, tap **Read All** again to retry.
 
 ## Install from GitHub Releases

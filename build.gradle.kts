@@ -32,8 +32,8 @@ android {
         applicationId = pluginPackage
         minSdk = 23
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.0.1"
+        versionCode = 3
+        versionName = "1.0.2"
     }
 
     signingProperties?.let { properties ->

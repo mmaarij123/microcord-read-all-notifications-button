@@ -4,6 +4,7 @@ package io.github.mmaarij123.readallnotificationsbutton
 import android.app.Activity
 import android.app.Application
 import android.content.Context
+import android.graphics.Picture
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -13,7 +14,6 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.recyclerview.widget.RecyclerView
-import com.caverock.androidsvg.SVG
 import com.discord.R as HostR
 import com.discord.app.AppActivity
 import com.discord.widgets.guilds.list.WidgetGuildsList
@@ -21,7 +21,7 @@ import rx.Subscription
 
 internal class ServerListShortcut(
     private val application: Application,
-    private val icon: SVG,
+    private val icon: Picture,
 ) : Application.ActivityLifecycleCallbacks {
     private val main = Handler(Looper.getMainLooper())
     private val activities = mutableSetOf<AppActivity>()

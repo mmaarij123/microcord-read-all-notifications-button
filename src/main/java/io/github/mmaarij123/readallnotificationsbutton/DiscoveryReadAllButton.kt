@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: MIT
 package io.github.mmaarij123.readallnotificationsbutton
 
-import android.graphics.drawable.PictureDrawable
-import android.util.TypedValue
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Picture
+import android.graphics.Rect
+import android.graphics.drawable.BitmapDrawable
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
@@ -12,13 +15,12 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import androidx.appcompat.widget.TooltipCompat
 import androidx.recyclerview.widget.RecyclerView
-import com.caverock.androidsvg.SVG
 import com.discord.widgets.guilds.list.GuildListViewHolder
 import kotlin.math.roundToInt
 
 internal class DiscoveryReadAllButton(
     private val list: RecyclerView,
-    private val icon: SVG,
+    private val icon: Picture,
     initiallyEnabled: Boolean,
     private val onClick: () -> Unit,
 ) : RecyclerView.OnChildAttachStateChangeListener {
@@ -42,19 +44,27 @@ internal class DiscoveryReadAllButton(
         val nativeHeight = params.height
         if (nativeHeight <= 0) return
 
-        val density = row.resources.displayMetrics.density
+        val children = List(row.childCount, row::getChildAt)
+        val discoveryIcon = children.filterIsInstance<ImageView>()
+            .firstOrNull { it.javaClass == ImageView::class.java }?.drawable
+        val metrics = row.resources.displayMetrics
+        val fallbackSize = (24 * metrics.density).roundToInt()
+        val iconWidth = discoveryIcon?.intrinsicWidth?.takeIf { it > 0 } ?: fallbackSize
+        val iconHeight = discoveryIcon?.intrinsicHeight?.takeIf { it > 0 } ?: fallbackSize
+        val bitmap = Bitmap.createBitmap(iconWidth, iconHeight, Bitmap.Config.ARGB_8888).apply {
+            density = metrics.densityDpi
+        }
+        Canvas(bitmap).drawPicture(icon, Rect(0, 0, iconWidth, iconHeight))
+
         val gap = params.bottomMargin.coerceAtLeast(0)
-        val buttonHeight = maxOf(nativeHeight, (48 * density).roundToInt())
-        val iconSize = (24 * density).roundToInt()
         val button = ImageButton(row.context).apply {
             contentDescription = "Mark all server notifications as read"
             TooltipCompat.setTooltipText(this, "Read All")
             scaleType = ImageView.ScaleType.CENTER
-            setPadding(0, gap, 0, 0)
-            val ripple = TypedValue()
-            context.theme.resolveAttribute(android.R.attr.selectableItemBackground, ripple, true)
-            setBackgroundResource(ripple.resourceId)
-            setImageDrawable(PictureDrawable(icon.renderToPicture(iconSize, iconSize)))
+            background = children.firstOrNull()?.background?.constantState
+                ?.newDrawable(row.resources, context.theme)?.mutate()
+            setPadding(0, 0, 0, 0)
+            setImageDrawable(BitmapDrawable(row.resources, bitmap))
             updateEnabled(enabled)
             setOnClickListener { onClick() }
         }
@@ -62,17 +72,23 @@ internal class DiscoveryReadAllButton(
         // Keep the native Discovery content at its original height and extend only its container.
         // This keeps RecyclerView positions and the host's trailing navigation spacer intact.
         val discoveryContent = FrameLayout(row.context)
-        val children = List(row.childCount, row::getChildAt)
         children.forEach { child ->
             row.removeView(child)
             discoveryContent.addView(child)
         }
         row.addView(discoveryContent, FrameLayout.LayoutParams(MATCH_PARENT, nativeHeight))
-        row.addView(button, FrameLayout.LayoutParams(MATCH_PARENT, gap + buttonHeight, Gravity.TOP).apply {
+        val shortcutSlot = FrameLayout(row.context).apply {
+            // Consume taps in the gutter so neither control gains the extra height.
+            isClickable = true
+            isFocusable = false
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            addView(button, FrameLayout.LayoutParams(MATCH_PARENT, nativeHeight, Gravity.BOTTOM))
+        }
+        row.addView(shortcutSlot, FrameLayout.LayoutParams(MATCH_PARENT, gap + nativeHeight, Gravity.TOP).apply {
             topMargin = nativeHeight
         })
-        row.layoutParams = params.apply { height = nativeHeight + gap + buttonHeight }
-        rows[row] = InstalledRow(row, discoveryContent, children, button, nativeHeight)
+        row.layoutParams = params.apply { height = nativeHeight + gap + nativeHeight }
+        rows[row] = InstalledRow(row, discoveryContent, children, shortcutSlot, button, nativeHeight)
     }
 
     override fun onChildViewDetachedFromWindow(view: View) {
@@ -94,12 +110,13 @@ internal class DiscoveryReadAllButton(
         private val row: FrameLayout,
         private val discoveryContent: FrameLayout,
         private val children: List<View>,
+        private val shortcutSlot: FrameLayout,
         val button: ImageButton,
         private val nativeHeight: Int,
     ) {
         fun restore() {
             button.setOnClickListener(null)
-            row.removeView(button)
+            row.removeView(shortcutSlot)
             row.removeView(discoveryContent)
             children.forEach { child ->
                 discoveryContent.removeView(child)
